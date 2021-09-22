@@ -1,0 +1,10 @@
+{
+  "name": "@imdbsd/use-google-one-tap",
+  "version": "0.0.1",
+  "description": "React hooks for using google one tap login",
+  "main": "index.js",
+  "repository": "https://github.com/imdbsd/use-google-one-tap.git",
+  "author": "surya darma <budisuryadarma0407@gmail.com>",
+  "license": "MIT",
+  "private": false
+}
