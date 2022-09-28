@@ -1,10 +1,14 @@
 {
-  "name": "@imdbsd/use-google-one-tap",
+  "name": "@imdbsd/react-google-oauth",
   "version": "0.0.1",
-  "description": "React hooks for using google one tap login",
+  "description": "React wrapper of Google OAuth2",
   "main": "index.js",
-  "repository": "https://github.com/imdbsd/use-google-one-tap.git",
+  "repository": "https://github.com/imdbsd/react-google-oauth",
   "author": "surya darma <budisuryadarma0407@gmail.com>",
   "license": "MIT",
-  "private": false
+  "private": false,
+  "devDependencies": {
+    "@types/google-one-tap": "^1.2.2",
+    "typescript": "^4.8.4"
+  }
 }
