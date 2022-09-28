@@ -1,6 +1,7 @@
-import {CredentialResponse} from 'google-one-tap'
+import {CredentialResponse, PromptMomentNotification} from 'google-one-tap'
 
 export const injectGSIScript = (
+  googleClientId: string,
   onUserSignIn: (credentialResponse: CredentialResponse) => Promise<void>
 ) => {
   if (document && typeof google === 'undefined') {
@@ -8,10 +9,10 @@ export const injectGSIScript = (
     script.src = 'https://accounts.google.com/gsi/client'
     script.onload = () => {
       google.accounts.id.initialize({
-        client_id: config.googleClientID,
+        client_id: googleClientId,
         callback: onUserSignIn,
       })
-      google.accounts.id.prompt((notification) => {
+      google.accounts.id.prompt((notification: PromptMomentNotification) => {
         const momentType = notification.getMomentType()
         const isDisplayed = notification.isDisplayed()
         const dismissedReason = notification.getDismissedReason()

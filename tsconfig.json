@@ -3,6 +3,7 @@
       "target": "es5",
       "module": "commonjs",
       "jsx": "react",
+      "allowUmdGlobalAccess": true,
       "declaration": true,      
       "outDir": "./dist",
       "rootDir": "./src",
