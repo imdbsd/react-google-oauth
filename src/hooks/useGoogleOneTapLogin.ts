@@ -1,17 +1,24 @@
 import * as React from 'react'
 import {useIsGSIScriptLoaded} from './useIsGSIScriptLoaded'
-import {CredentialResponse, MomenListener} from '../types/gsi.types'
-interface Props {
+import {
+  GoogleCredentialResponse,
+  MomenListener,
+  IdConfiguration,
+} from '../types/gsi.types'
+interface Listener {
   onPrompt?: MomenListener
-  onSuccess?: (codeResponse: CredentialResponse) => void | Promise<void>
-  onError?: (codeResponse: CredentialResponse) => void | Promise<void>
+  onSuccess?: (codeResponse: GoogleCredentialResponse) => void | Promise<void>
+  onError?: (codeResponse: GoogleCredentialResponse) => void | Promise<void>
 }
 
-export const useGoogleOneTapLogin = (props: Props): void => {
+export const useGoogleOneTapLogin = (
+  configs: IdConfiguration,
+  listener?: Listener
+): void => {
   const isScriptLoaded = useIsGSIScriptLoaded()
-  const onErrorRef = React.useRef(props?.onError)
-  const onPromptRef = React.useRef(props?.onPrompt)
-  const onSuccessRef = React.useRef(props?.onSuccess)
+  const onErrorRef = React.useRef(listener?.onError)
+  const onPromptRef = React.useRef(listener?.onPrompt)
+  const onSuccessRef = React.useRef(listener?.onSuccess)
 
   React.useEffect(() => {
     if (
@@ -19,12 +26,15 @@ export const useGoogleOneTapLogin = (props: Props): void => {
       typeof window !== 'undefined' &&
       typeof window.google !== 'undefined'
     ) {
+      const {client_id, callback, ...restConfigs} = configs
       window.google?.accounts.id.initialize({
-        client_id: '',
-        callback: (response: any) => {
-          if (response.error) onErrorRef.current?.(response)
+        client_id: client_id,
+        callback: (response: GoogleCredentialResponse) => {
+          if (!response.credential) onErrorRef.current?.(response)
           else onSuccessRef.current?.(response)
+          if (callback) callback(response)
         },
+        ...restConfigs,
       })
 
       window.google?.accounts.id.prompt(onPromptRef.current)
@@ -33,11 +43,11 @@ export const useGoogleOneTapLogin = (props: Props): void => {
         window.google?.accounts.id.cancel()
       }
     }
-  }, [isScriptLoaded])
+  }, [isScriptLoaded, configs])
 
   React.useEffect(() => {
-    onErrorRef.current = props?.onError
-    onSuccessRef.current = props?.onSuccess
-    onPromptRef.current = props?.onPrompt
-  }, [props])
+    onErrorRef.current = listener?.onError
+    onSuccessRef.current = listener?.onSuccess
+    onPromptRef.current = listener?.onPrompt
+  }, [listener])
 }
