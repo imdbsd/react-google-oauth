@@ -1,35 +1,43 @@
-import {CredentialResponse} from 'google-one-tap'
 import * as React from 'react'
-import {useLoadGSIScript} from './useLoadGSIScript'
-
-interface Configs {
-  clientId?: string
-  onSuccess?: (credentialResponse: CredentialResponse) => void
-  onError?: () => void
+import {useIsGSIScriptLoaded} from './useIsGSIScriptLoaded'
+import {CredentialResponse, MomenListener} from '../types/gsi.types'
+interface Props {
+  onPrompt?: MomenListener
+  onSuccess?: (codeResponse: CredentialResponse) => void | Promise<void>
+  onError?: (codeResponse: CredentialResponse) => void | Promise<void>
 }
 
-export const useGoogleOneTapLogin = (configs?: Configs) => {
-  const scriptIsLoaded = useLoadGSIScript()
-
-  const onSuccess = React.useRef<Configs['onSuccess']>(configs?.onSuccess)
-  const onError = React.useRef<Configs['onError']>(configs?.onError)
+export const useGoogleOneTapLogin = (props: Props): void => {
+  const isScriptLoaded = useIsGSIScriptLoaded()
+  const onErrorRef = React.useRef(props?.onError)
+  const onPromptRef = React.useRef(props?.onPrompt)
+  const onSuccessRef = React.useRef(props?.onSuccess)
 
   React.useEffect(() => {
-    console.log('scriptIsLoaded: ', scriptIsLoaded)
-    if (typeof google !== 'undefined' && configs?.clientId) {
-      google.accounts.id.initialize({
-        client_id: configs.clientId,
-        callback: (credentialResponse: CredentialResponse) => {
-          console.log(credentialResponse)
-          if (!credentialResponse.clientId || !credentialResponse.credential) {
-            return onError.current?.()
-          }
-          return onSuccess.current?.(credentialResponse)
+    if (
+      isScriptLoaded &&
+      typeof window !== 'undefined' &&
+      typeof window.google !== 'undefined'
+    ) {
+      window.google?.accounts.id.initialize({
+        client_id: '',
+        callback: (response: any) => {
+          if (response.error) onErrorRef.current?.(response)
+          else onSuccessRef.current?.(response)
         },
       })
-      google.accounts.id.prompt((notification) => {
-        console.log('notification: ', notification)
-      })
+
+      window.google?.accounts.id.prompt(onPromptRef.current)
+
+      return () => {
+        window.google?.accounts.id.cancel()
+      }
     }
-  }, [scriptIsLoaded, configs?.clientId])
+  }, [isScriptLoaded])
+
+  React.useEffect(() => {
+    onErrorRef.current = props?.onError
+    onSuccessRef.current = props?.onSuccess
+    onPromptRef.current = props?.onPrompt
+  }, [props])
 }
