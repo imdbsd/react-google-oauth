@@ -1,35 +1,53 @@
-import {CredentialResponse} from 'google-one-tap'
 import * as React from 'react'
-import {useLoadGSIScript} from './useLoadGSIScript'
-
-interface Configs {
-  clientId?: string
-  onSuccess?: (credentialResponse: CredentialResponse) => void
-  onError?: () => void
+import {useIsGSIScriptLoaded} from './useIsGSIScriptLoaded'
+import {
+  GoogleCredentialResponse,
+  MomenListener,
+  IdConfiguration,
+} from '../types/gsi.types'
+interface Listener {
+  onPrompt?: MomenListener
+  onSuccess?: (codeResponse: GoogleCredentialResponse) => void | Promise<void>
+  onError?: (codeResponse: GoogleCredentialResponse) => void | Promise<void>
 }
 
-export const useGoogleOneTapLogin = (configs?: Configs) => {
-  const scriptIsLoaded = useLoadGSIScript()
-
-  const onSuccess = React.useRef<Configs['onSuccess']>(configs?.onSuccess)
-  const onError = React.useRef<Configs['onError']>(configs?.onError)
+export const useGoogleOneTapLogin = (
+  configs: IdConfiguration,
+  listener?: Listener
+): void => {
+  const isScriptLoaded = useIsGSIScriptLoaded()
+  const onErrorRef = React.useRef(listener?.onError)
+  const onPromptRef = React.useRef(listener?.onPrompt)
+  const onSuccessRef = React.useRef(listener?.onSuccess)
 
   React.useEffect(() => {
-    console.log('scriptIsLoaded: ', scriptIsLoaded)
-    if (typeof google !== 'undefined' && configs?.clientId) {
-      google.accounts.id.initialize({
-        client_id: configs.clientId,
-        callback: (credentialResponse: CredentialResponse) => {
-          console.log(credentialResponse)
-          if (!credentialResponse.clientId || !credentialResponse.credential) {
-            return onError.current?.()
-          }
-          return onSuccess.current?.(credentialResponse)
+    if (
+      isScriptLoaded &&
+      typeof window !== 'undefined' &&
+      typeof window.google !== 'undefined'
+    ) {
+      const {client_id, callback, ...restConfigs} = configs
+      window.google?.accounts.id.initialize({
+        client_id: client_id,
+        callback: (response: GoogleCredentialResponse) => {
+          if (!response.credential) onErrorRef.current?.(response)
+          else onSuccessRef.current?.(response)
+          if (callback) callback(response)
         },
+        ...restConfigs,
       })
-      google.accounts.id.prompt((notification) => {
-        console.log('notification: ', notification)
-      })
+
+      window.google?.accounts.id.prompt(onPromptRef.current)
+
+      return () => {
+        window.google?.accounts.id.cancel()
+      }
     }
-  }, [scriptIsLoaded, configs?.clientId])
+  }, [isScriptLoaded, configs])
+
+  React.useEffect(() => {
+    onErrorRef.current = listener?.onError
+    onSuccessRef.current = listener?.onSuccess
+    onPromptRef.current = listener?.onPrompt
+  }, [listener])
 }
